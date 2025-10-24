@@ -1,42 +1,60 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Form
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 import uvicorn
+import random
+from datetime import datetime
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
+# In-memory quote storage
+quotes = [
+    {
+        "id": 1,
+        "text": "The only way to do great work is to love what you do.",
+        "author": "Steve Jobs",
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    },
+    {
+        "id": 2,
+        "text": "Life is what happens when you're busy making other plans.",
+        "author": "John Lennon",
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    },
+]
+
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_html(request: Request):
-    data = {
-        "greeting": "Hello from kach-7aja!",
-        "message": "Welcome to the modular FastAPI server!",
+    return templates.TemplateResponse(
+        "index.html", {"request": request, "quotes": quotes}
+    )
+
+
+@app.get("/random-quote", response_class=HTMLResponse)
+async def random_quote(request: Request):
+    quote = random.choice(quotes) if quotes else None
+    return templates.TemplateResponse(
+        "random_quote.html", {"request": request, "quote": quote}
+    )
+
+
+@app.get("/add-quote", response_class=HTMLResponse)
+async def add_quote_form(request: Request):
+    return templates.TemplateResponse("add_quote.html", {"request": request})
+
+
+@app.post("/add-quote", response_class=RedirectResponse)
+async def add_quote(text: str = Form(...), author: str = Form(...)):
+    new_quote = {
+        "id": len(quotes) + 1,
+        "text": text,
+        "author": author,
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
-    return templates.TemplateResponse("index.html", {"request": request, **data})
-
-
-@app.get("/page1", response_class=HTMLResponse)
-async def serve_page1(request: Request):
-    data = {
-        "title": "Explore Kach-7aja",
-        "content": "Discover the wonders of our platform with this page!",
-    }
-    return templates.TemplateResponse("page1.html", {"request": request, **data})
-
-
-@app.get("/page2", response_class=HTMLResponse)
-async def serve_page2(request: Request):
-    data = {
-        "title": "Kach-7aja Adventures",
-        "content": "Join us on an exciting journey through our services!",
-    }
-    return templates.TemplateResponse("page2.html", {"request": request, **data})
-
-
-@app.get("/health")
-async def check_health():
-    return {"health": "ok"}
+    quotes.append(new_quote)
+    return RedirectResponse(url="/", status_code=303)
 
 
 if __name__ == "__main__":

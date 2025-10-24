@@ -3,33 +3,41 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kach-7aja Welcome Page</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        margin: 0;
-        background-color: #f0f0f0;
-      }
-      .container {
-        text-align: center;
-        padding: 20px;
-        background-color: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-      }
-      h1 {
-        color: #333;
-      }
-    </style>
+    <title>Kach-7aja Quote Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body>
-    <div class="container">
-      <h1>{{ greeting }}</h1>
-      <p>{{ message }}</p>
-    </div>
+  <body class="bg-gray-100 min-h-screen flex flex-col">
+    <header class="bg-indigo-600 text-white p-4">
+      <h1 class="text-2xl font-bold text-center">Kach-7aja Quote Generator</h1>
+    </header>
+    <main class="max-w-3xl mx-auto p-4 flex-grow">
+      <div class="mb-6 flex gap-4 justify-center">
+        <a
+          href="/random-quote"
+          class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 transition"
+          >Get Random Quote</a
+        >
+        <a
+          href="/add-quote"
+          class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
+          >Add New Quote</a
+        >
+      </div>
+      {% if quotes %}
+      <div class="grid gap-4">
+        {% for quote in quotes %}
+        <div class="bg-white p-4 rounded-lg shadow-md">
+          <p class="text-gray-800 italic">"{{ quote.text }}"</p>
+          <p class="text-gray-600 font-semibold mt-2">— {{ quote.author }}</p>
+          <p class="text-sm text-gray-500 mt-1">
+            Added: {{ quote.created_at }}
+          </p>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-gray-600 text-center">No quotes available. Add one!</p>
+      {% endif %}
+    </main>
   </body>
 </html>
