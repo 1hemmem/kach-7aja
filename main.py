@@ -1,4 +1,9 @@
 from fastapi import FastAPI, Request, Form, HTTPException
+import urllib.request
+import urllib.parse
+import urllib.error
+import ssl
+import json
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 import uvicorn
@@ -68,3 +73,62 @@ async def view_quote(request: Request, quote_id: int):
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
     return templates.TemplateResponse("random_quote.html", {"request": request, "quote": quote})
+
+
+@app.get("/search", response_class=HTMLResponse)
+async def search_quotes(request: Request, q: str | None = None):
+    """Search external quotes API and render results."""
+    results = []
+    error = None
+    if q:
+        safe_q = urllib.parse.quote(q)
+        url = f"https://api.quotable.io/search/quotes?query={safe_q}&fields=content,author"
+
+        def _fetch_with_context(context=None):
+            with urllib.request.urlopen(url, timeout=10, context=context) as resp:
+                return json.load(resp)
+
+        try:
+            # First try default system verification
+            data = _fetch_with_context()
+        except urllib.error.URLError as e:
+            # Detect certificate verification failures and try safer fallbacks
+            reason = getattr(e, 'reason', None)
+            msg = str(e)
+            # ssl.SSLError can be nested inside URLError.reason
+            if isinstance(reason, ssl.SSLError) or 'certificate verify failed' in msg.lower():
+                # Try to use certifi's CA bundle if available
+                try:
+                    import certifi
+
+                    ctx = ssl.create_default_context(cafile=certifi.where())
+                    data = _fetch_with_context(context=ctx)
+                except Exception:
+                    # Last resort: disable verification (INSECURE)
+                    try:
+                        ctx = ssl.create_default_context()
+                        ctx.check_hostname = False
+                        ctx.verify_mode = ssl.CERT_NONE
+                        data = _fetch_with_context(context=ctx)
+                        # warn user that verification was disabled
+                        error = 'Warning: SSL verification was disabled to fetch external API. Install the "certifi" package to fix this securely.'
+                    except Exception as e2:
+                        error = f'Failed to fetch external API (ssl): {e2}'
+                        data = {}
+            else:
+                error = f'Network error: {e}'
+                data = {}
+        except Exception as e:
+            error = str(e)
+
+        # parse results when data available
+        for item in data.get("results", []) if isinstance(data, dict) else []:
+            results.append({
+                "text": item.get("content"),
+                "author": item.get("author", "Unknown"),
+            })
+
+    return templates.TemplateResponse(
+        "search_results.html",
+        {"request": request, "query": q or "", "results": results, "error": error},
+    )
