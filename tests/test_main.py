@@ -101,3 +101,26 @@ async def test_random_quote_with_quotes(async_client: TestClient):
     response = async_client.get("/random-quote")
     assert response.status_code == 200
     assert "Quote 1" in response.text or "Quote 2" in response.text
+
+@pytest.mark.asyncio
+async def test_search_quotes_found(async_client: TestClient):
+    # Add a quote to the database
+    async_client.post(
+        "/add-quote",
+        data={"text": "This is a test quote", "author": "Test Author"},
+        follow_redirects=False,
+    )
+
+    # Search for the quote
+    response = async_client.get("/search?q=test")
+    assert response.status_code == 200
+    assert "Search Results" in response.text
+    assert "This is a test quote" in response.text
+    assert "Test Author" in response.text
+
+@pytest.mark.asyncio
+async def test_search_quotes_not_found(async_client: TestClient):
+    response = async_client.get("/search?q=nonexistent")
+    assert response.status_code == 200
+    assert "Search Results" in response.text
+    assert "No results found." in response.text
