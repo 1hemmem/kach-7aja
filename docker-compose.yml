@@ -5,3 +5,7 @@ services:
     build: .
     ports:
       - "8000:80"
+    volumes:
+      - ./data:/app/data
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:///./data/sql_app.db
