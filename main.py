@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 import uvicorn
@@ -59,3 +59,12 @@ async def add_quote(text: str = Form(...), author: str = Form(...)):
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+@app.get("/quote/{quote_id}", response_class=HTMLResponse)
+async def view_quote(request: Request, quote_id: int):
+    """View a specific quote by id."""
+    quote = next((q for q in quotes if q["id"] == quote_id), None)
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found")
+    return templates.TemplateResponse("random_quote.html", {"request": request, "quote": quote})

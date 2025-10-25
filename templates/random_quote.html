@@ -1,32 +1,34 @@
 <!doctype html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Random Quote - Kach-7aja</title>
     <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body class="bg-gray-100 min-h-screen flex flex-col">
+</head>
+
+<body class="bg-gray-100 min-h-screen flex flex-col">
     <header class="bg-indigo-600 text-white p-4">
-      <h1 class="text-2xl font-bold text-center">Random Quote</h1>
+        <h1 class="text-2xl font-bold text-center">Random Quote</h1>
     </header>
     <main class="max-w-md mx-auto p-4 flex-grow">
-      {% if quote %}
-      <div class="bg-white p-6 rounded-lg shadow-md text-center">
-        <p class="text-gray-800 italic text-lg">"{{ quote.text }}"</p>
-        <p class="text-gray-600 font-semibold mt-2">— {{ quote.author }}</p>
-        <p class="text-sm text-gray-500 mt-1">Added: {{ quote.created_at }}</p>
-      </div>
-      {% else %}
-      <p class="text-gray-600 text-center">
-        No quotes available. Add one first!
-      </p>
-      {% endif %}
-      <div class="mt-6 flex justify-center gap-4">
-        <a
-          href="/random-quote"
-          class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 transition"
-          >Another Quote</a
+        {% if quote %}
+        <div id="quote-single" class="bg-white p-6 rounded-lg shadow-md text-center">
+            <p class="text-gray-800 italic text-lg">"{{ quote.text }}"</p>
+            <p class="text-gray-600 font-semibold mt-2">— {{ quote.author }}</p>
+            <div class="mt-4 flex justify-center">
+                <button onclick="captureDownload('quote-single','random-quote.png')" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">Download</button>
+                <button onclick="copyLink('/quote/{{ quote.id }}')" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 transition ml-2">Share Link</button>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-gray-600 text-center">
+            No quotes available. Add one first!
+        </p>
+        {% endif %}
+        <div class="mt-6 flex justify-center gap-4">
+            <a href="/random-quote" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 transition">Another Quote</a
         >
         <a
           href="/"
@@ -35,5 +37,68 @@
         >
       </div>
     </main>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script>
+      // Capture the element and download as PNG
+      async function captureDownload(elementId, filename) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+
+        // Temporarily hide buttons/links inside the card and set a fixed height
+        const controls = el.querySelectorAll('button, a');
+        const originalDisplays = [];
+        controls.forEach((c) => {
+          originalDisplays.push(c.style.display);
+          c.style.display = 'none';
+        });
+        const originalHeight = el.style.height;
+        const originalOverflow = el.style.overflow;
+        // Set a fixed height for consistent screenshots (adjust as needed)
+        el.style.height = el.style.height || '300px';
+        el.style.overflow = 'hidden';
+
+        try {
+          const canvas = await html2canvas(el, { backgroundColor: null, scale: 2 });
+          canvas.toBlob((blob) => {
+            if (!blob) return;
+            downloadBlob(blob, filename);
+          }, 'image/png');
+        } catch (err) {
+          console.error('capture failed', err);
+          alert('Failed to capture image');
+        } finally {
+          // restore controls and styles
+          controls.forEach((c, i) => (c.style.display = originalDisplays[i] || ''));
+          el.style.height = originalHeight || '';
+          el.style.overflow = originalOverflow || '';
+        }
+      }
+
+      // Copy a link to the quote page to the clipboard (fallback to prompt)
+      async function copyLink(path) {
+        const full = window.location.origin + path;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          try {
+            await navigator.clipboard.writeText(full);
+            alert('Link copied to clipboard:\n' + full);
+            return;
+          } catch (e) {
+            // fallback
+          }
+        }
+        window.prompt('Copy this link:', full);
+      }
+
+      function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+    </script>
   </body>
 </html>
